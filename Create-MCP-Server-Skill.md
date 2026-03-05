@@ -499,7 +499,10 @@ export class HttpsTransportManager {
   constructor(private readonly config: HttpsTransportConfig) {
     this.app = express();
     this.app.use(cors({ origin: config.corsOrigin ?? "*" }));
-    this.app.use(express.json());
+    // ⚠️ DO NOT add express.json() here — it consumes the request body stream
+    // before SSEServerTransport.handlePostMessage can read it, causing:
+    //   "Error POSTing to endpoint (HTTP 400): InternalServerError: stream is not readable"
+    // The MCP SDK handles its own body parsing internally.
   }
 
   mount(server: Server): void {
@@ -575,8 +578,9 @@ npm run dev
 # Test SSE connection
 curl -N http://localhost:3000/sse
 
-# Test with MCP inspector
-npx @modelcontextprotocol/inspector --url http://localhost:3000/sse
+# Test with MCP inspector (use --transport and --server-url, NOT the deprecated --url flag)
+npx @modelcontextprotocol/inspector --transport sse --server-url http://localhost:3000/sse
+# Then open the full URL printed in the terminal output (includes MCP_PROXY_AUTH_TOKEN)
 ```
 
 #### Environment Variables
@@ -624,10 +628,29 @@ Start the server:
 npm run dev
 ```
 
-In a second terminal, point the Inspector at the SSE endpoint:
+In a second terminal, launch the Inspector with the SSE transport:
 ```bash
-npx @modelcontextprotocol/inspector --url http://localhost:3000/sse
+npx @modelcontextprotocol/inspector --transport sse --server-url http://localhost:3000/sse
 ```
+
+> **⚠️ Session Token Required:** The Inspector proxy generates an auth token on startup.
+> Look for this line in the terminal output:
+> ```
+> 🔑 Session token: <token>
+> 🚀 MCP Inspector is up and running at:
+>    http://localhost:6274/?MCP_PROXY_AUTH_TOKEN=<token>
+> ```
+> **You MUST open the full URL with the `MCP_PROXY_AUTH_TOKEN` query parameter** — otherwise you will get:
+> `"Connection Error — Did you add the proxy session token in Configuration?"`
+>
+> If the Inspector UI is already open without the token, either:
+> 1. Open the full URL printed in the terminal (includes the token), OR
+> 2. In the Inspector UI, paste the token into the "Proxy Session Token" field under Configuration
+>
+> To disable auth during local development:
+> ```bash
+> DANGEROUSLY_OMIT_AUTH=true npx @modelcontextprotocol/inspector --transport sse --server-url http://localhost:3000/sse
+> ```
 
 ### Validation Checklist
 
@@ -651,6 +674,10 @@ Only mark the server complete when all 7 checks pass. If any check fails, diagno
 |---------|-------------|-----|
 | Inspector can't connect (Stdio) | Build not run | Run `npm run build` first |
 | Inspector can't connect (HTTPS) | Server not started | Run `npm run dev` first |
+| "Connection Error — Did you add the proxy session token in Configuration?" | Inspector proxy auth token missing from URL | Open the full URL with `?MCP_PROXY_AUTH_TOKEN=<token>` printed in the Inspector terminal output, or paste the token into the Configuration panel |
+| "stream is not readable" / HTTP 400 on POST `/messages` | `express.json()` middleware consuming the request body before `SSEServerTransport.handlePostMessage` reads it | **Remove `app.use(express.json())`** from the transport — the MCP SDK parses the body itself |
+| Inspector tries STDIO instead of SSE | Wrong transport type | Use `--transport sse --server-url <url>` CLI flags, or change transport type to "SSE" in the Inspector UI dropdown |
+| `spawn --url ENOENT` error in Inspector | Inspector misinterpreting `--url` as a STDIO command | Use `--transport sse --server-url <url>` instead of the deprecated `--url` flag |
 | Tool not appearing | Not registered in `buildRegistry()` | Add `.registerTool(new YourTool())` |
 | Zod parse error on tool call | Schema mismatch | Check `inputSchema` matches Zod shape |
 | SSE session 404 on POST | `sessionId` not passed | Confirm Inspector sends `?sessionId=` param |
