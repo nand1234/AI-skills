@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI Skills – Shared Profile</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: #f0f4ff;
+      color: #1a1a2e;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 2rem 1rem;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 2rem;
+    }
+
+    header h1 { font-size: 2rem; color: #4f46e5; }
+    header p { color: #6b7280; margin-top: 0.4rem; }
+
+    .card {
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 4px 24px rgba(79, 70, 229, 0.1);
+      padding: 2rem;
+      width: 100%;
+      max-width: 620px;
+    }
+
+    .profile-header {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .avatar {
+      width: 56px;
+      height: 56px;
+      border-radius: 50%;
+      background: #4f46e5;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5rem;
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+
+    .profile-header h2 { font-size: 1.4rem; }
+    .profile-header .since { color: #9ca3af; font-size: 0.85rem; margin-top: 0.2rem; }
+
+    .skills-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+      gap: 0.75rem;
+    }
+
+    .skill-card {
+      background: #f5f3ff;
+      border: 1.5px solid #e0e7ff;
+      border-radius: 10px;
+      padding: 0.85rem 1rem;
+    }
+
+    .skill-card .skill-name { font-weight: 700; font-size: 0.95rem; }
+
+    .skill-card .skill-level {
+      font-size: 0.78rem;
+      margin-top: 0.35rem;
+      display: inline-block;
+      padding: 0.15rem 0.55rem;
+      border-radius: 999px;
+      font-weight: 600;
+      text-transform: capitalize;
+    }
+
+    .level-beginner { background: #fef9c3; color: #854d0e; }
+    .level-intermediate { background: #dbeafe; color: #1e40af; }
+    .level-advanced { background: #dcfce7; color: #166534; }
+    .level-expert { background: #fce7f3; color: #9d174d; }
+
+    .back-link {
+      margin-top: 1.5rem;
+      display: inline-block;
+      color: #4f46e5;
+      font-weight: 600;
+      text-decoration: none;
+    }
+
+    .back-link:hover { text-decoration: underline; }
+
+    .loading { text-align: center; color: #6b7280; margin-top: 2rem; }
+    .not-found { text-align: center; color: #dc2626; margin-top: 2rem; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>🧠 AI Skills</h1>
+    <p>Shared skills profile</p>
+  </header>
+
+  <div id="loading" class="loading">Loading profile…</div>
+
+  <div class="card" id="profile-card" style="display:none">
+    <div class="profile-header">
+      <div class="avatar" id="avatar"></div>
+      <div>
+        <h2 id="profile-name"></h2>
+        <div class="since" id="profile-since"></div>
+      </div>
+    </div>
+    <div class="skills-grid" id="skills-grid"></div>
+  </div>
+
+  <div class="not-found" id="not-found" style="display:none">
+    <p>⚠️ Skills profile not found or the link is invalid.</p>
+  </div>
+
+  <a class="back-link" href="/">← Create your own skills profile</a>
+
+  <script>
+    const params = new URLSearchParams(window.location.search);
+    const token = params.get('token');
+
+    async function loadProfile() {
+      if (!token) {
+        document.getElementById('loading').style.display = 'none';
+        document.getElementById('not-found').style.display = 'block';
+        return;
+      }
+
+      try {
+        const res = await fetch(`/api/skills/${encodeURIComponent(token)}`);
+        document.getElementById('loading').style.display = 'none';
+
+        if (!res.ok) {
+          document.getElementById('not-found').style.display = 'block';
+          return;
+        }
+
+        const profile = await res.json();
+
+        // Set page title
+        document.title = `${profile.name}'s AI Skills`;
+
+        // Avatar initials
+        const initials = profile.name.split(' ').map((w) => w[0]).join('').slice(0, 2).toUpperCase();
+        document.getElementById('avatar').textContent = initials;
+
+        document.getElementById('profile-name').textContent = profile.name;
+        document.getElementById('profile-since').textContent =
+          `Shared on ${new Date(profile.createdAt).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' })}`;
+
+        const grid = document.getElementById('skills-grid');
+        for (const skill of profile.skills) {
+          const card = document.createElement('div');
+          card.className = 'skill-card';
+          card.innerHTML = `
+            <div class="skill-name">${escapeHtml(skill.name)}</div>
+            <span class="skill-level level-${escapeHtml(skill.level)}">${escapeHtml(skill.level)}</span>
+          `;
+          grid.appendChild(card);
+        }
+
+        document.getElementById('profile-card').style.display = 'block';
+      } catch {
+        document.getElementById('loading').style.display = 'none';
+        document.getElementById('not-found').style.display = 'block';
+      }
+    }
+
+    function escapeHtml(str) {
+      return str.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    }
+
+    loadProfile();
+  </script>
+</body>
+</html>

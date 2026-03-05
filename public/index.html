@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI Skills – Create Profile</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: #f0f4ff;
+      color: #1a1a2e;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 2rem 1rem;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 2rem;
+    }
+
+    header h1 {
+      font-size: 2rem;
+      color: #4f46e5;
+    }
+
+    header p {
+      color: #6b7280;
+      margin-top: 0.4rem;
+    }
+
+    .card {
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 4px 24px rgba(79, 70, 229, 0.1);
+      padding: 2rem;
+      width: 100%;
+      max-width: 600px;
+    }
+
+    label {
+      display: block;
+      font-weight: 600;
+      margin-bottom: 0.3rem;
+      margin-top: 1rem;
+    }
+
+    input, select, textarea {
+      width: 100%;
+      padding: 0.55rem 0.75rem;
+      border: 1.5px solid #d1d5db;
+      border-radius: 8px;
+      font-size: 0.95rem;
+      transition: border-color 0.2s;
+    }
+
+    input:focus, select:focus, textarea:focus {
+      outline: none;
+      border-color: #4f46e5;
+    }
+
+    .skill-row {
+      display: grid;
+      grid-template-columns: 1fr auto auto;
+      gap: 0.5rem;
+      align-items: end;
+      margin-bottom: 0.75rem;
+    }
+
+    .skill-row .level-select { width: 130px; }
+
+    .btn {
+      padding: 0.55rem 1.1rem;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 0.9rem;
+      font-weight: 600;
+      transition: background 0.2s, transform 0.1s;
+    }
+
+    .btn:active { transform: scale(0.97); }
+
+    .btn-primary { background: #4f46e5; color: #fff; }
+    .btn-primary:hover { background: #4338ca; }
+
+    .btn-danger { background: #fee2e2; color: #dc2626; }
+    .btn-danger:hover { background: #fecaca; }
+
+    .btn-secondary { background: #e0e7ff; color: #4f46e5; }
+    .btn-secondary:hover { background: #c7d2fe; }
+
+    #add-skill-btn { margin-top: 0.5rem; }
+
+    #submit-btn { width: 100%; margin-top: 1.5rem; padding: 0.75rem; font-size: 1rem; }
+
+    .result-box {
+      display: none;
+      margin-top: 1.5rem;
+      background: #f0fdf4;
+      border: 1.5px solid #86efac;
+      border-radius: 10px;
+      padding: 1rem 1.25rem;
+    }
+
+    .result-box p { margin-bottom: 0.4rem; }
+
+    .result-box a {
+      color: #4f46e5;
+      word-break: break-all;
+      font-weight: 600;
+    }
+
+    .error-msg {
+      color: #dc2626;
+      font-size: 0.88rem;
+      margin-top: 0.5rem;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>🧠 AI Skills</h1>
+    <p>Build and share your AI skills profile in seconds.</p>
+  </header>
+
+  <div class="card">
+    <label for="profile-name">Your Name</label>
+    <input type="text" id="profile-name" placeholder="e.g. Jane Doe" maxlength="100" />
+
+    <label>Skills</label>
+    <div id="skills-list"></div>
+
+    <button class="btn btn-secondary" id="add-skill-btn" type="button">+ Add Skill</button>
+
+    <p class="error-msg" id="error-msg"></p>
+
+    <button class="btn btn-primary" id="submit-btn" type="button">Generate Shareable Link</button>
+
+    <div class="result-box" id="result-box">
+      <p><strong>Your shareable link is ready! 🎉</strong></p>
+      <p><a id="share-link" href="#" target="_blank"></a></p>
+      <button class="btn btn-secondary" id="copy-btn" style="margin-top:0.75rem">Copy Link</button>
+    </div>
+  </div>
+
+  <script>
+    const skillsList = document.getElementById('skills-list');
+    const addSkillBtn = document.getElementById('add-skill-btn');
+    const submitBtn = document.getElementById('submit-btn');
+    const resultBox = document.getElementById('result-box');
+    const shareLink = document.getElementById('share-link');
+    const copyBtn = document.getElementById('copy-btn');
+    const errorMsg = document.getElementById('error-msg');
+
+    const LEVELS = ['beginner', 'intermediate', 'advanced', 'expert'];
+
+    function createSkillRow() {
+      const row = document.createElement('div');
+      row.className = 'skill-row';
+
+      const nameInput = document.createElement('input');
+      nameInput.type = 'text';
+      nameInput.placeholder = 'Skill name (e.g. Python)';
+      nameInput.maxLength = 100;
+
+      const levelSelect = document.createElement('select');
+      levelSelect.className = 'level-select';
+      LEVELS.forEach((l) => {
+        const opt = document.createElement('option');
+        opt.value = l;
+        opt.textContent = l.charAt(0).toUpperCase() + l.slice(1);
+        if (l === 'intermediate') opt.selected = true;
+        levelSelect.appendChild(opt);
+      });
+
+      const removeBtn = document.createElement('button');
+      removeBtn.className = 'btn btn-danger';
+      removeBtn.type = 'button';
+      removeBtn.textContent = '✕';
+      removeBtn.addEventListener('click', () => {
+        if (skillsList.children.length > 1) row.remove();
+      });
+
+      row.appendChild(nameInput);
+      row.appendChild(levelSelect);
+      row.appendChild(removeBtn);
+      return row;
+    }
+
+    // Start with one skill row
+    skillsList.appendChild(createSkillRow());
+
+    addSkillBtn.addEventListener('click', () => {
+      skillsList.appendChild(createSkillRow());
+    });
+
+    function showError(msg) {
+      errorMsg.textContent = msg;
+      errorMsg.style.display = 'block';
+    }
+
+    function hideError() {
+      errorMsg.style.display = 'none';
+    }
+
+    submitBtn.addEventListener('click', async () => {
+      hideError();
+      resultBox.style.display = 'none';
+
+      const name = document.getElementById('profile-name').value.trim();
+      if (!name) { showError('Please enter your name.'); return; }
+
+      const rows = skillsList.querySelectorAll('.skill-row');
+      const skills = [];
+      for (const row of rows) {
+        const skillName = row.querySelector('input').value.trim();
+        const level = row.querySelector('select').value;
+        if (skillName) skills.push({ name: skillName, level });
+      }
+
+      if (skills.length === 0) { showError('Please add at least one skill.'); return; }
+
+      try {
+        const res = await fetch('/api/skills', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name, skills }),
+        });
+
+        if (!res.ok) {
+          const err = await res.json();
+          showError(err.error || 'Something went wrong.');
+          return;
+        }
+
+        const data = await res.json();
+        const url = window.location.origin + data.shareUrl;
+        shareLink.href = url;
+        shareLink.textContent = url;
+        resultBox.style.display = 'block';
+      } catch {
+        showError('Network error. Please try again.');
+      }
+    });
+
+    copyBtn.addEventListener('click', () => {
+      navigator.clipboard.writeText(shareLink.href).then(() => {
+        copyBtn.textContent = 'Copied!';
+        setTimeout(() => { copyBtn.textContent = 'Copy Link'; }, 2000);
+      });
+    });
+  </script>
+</body>
+</html>
