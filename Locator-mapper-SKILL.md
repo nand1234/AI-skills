@@ -27,6 +27,8 @@ Two-layer architecture:
 ## Workflow
 
 ### Step 1 — Ask for the URL
+> "create a new DIR and install project into it"
+> "cd dir"
 > "Please provide the URL you'd like to map."
 
 Wait. Do not assume.
