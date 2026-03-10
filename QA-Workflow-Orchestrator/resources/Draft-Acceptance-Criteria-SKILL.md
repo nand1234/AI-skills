@@ -77,19 +77,32 @@ If there are **any** gaps or ambiguities, list them as numbered questions and wa
 
 ---
 
-### Step 3 — Identify Impacted Areas
+### Step 3 — Identify Impacted Areas, Performance & Security
 
-Once the requirement is clear, ask the user about broader impact:
+Once the requirement is clear, ask the user about broader impact AND non-functional concerns in a single prompt:
 
-> "Are there any other areas, modules, or systems that might be impacted by this requirement? For example:
-> - Other screens or pages that display related data
-> - APIs or integrations that consume or produce this data
-> - Reports, dashboards, or notifications that depend on this feature
-> - Existing workflows that might change
+> "Before I draft the acceptance criteria, I have a few more questions to make sure I cover everything:
 >
-> Let me know so I can include relevant acceptance criteria for those areas too."
+> **Impacted Areas**
+> - Are there other screens, modules, or systems affected by this requirement?
+> - Are there APIs, integrations, reports, dashboards, or notifications that depend on this feature?
+> - Are there existing workflows that will change?
+>
+> **Performance**
+> - Are there any response time expectations or SLAs for this feature? (e.g., page loads within 2 seconds, supports 500 concurrent users)
+> - Is this feature expected to handle high load or large data volumes?
+>
+> **Security & Access Control**
+> - Are there different user roles involved? Should access be restricted based on role?
+> - Does this feature handle sensitive data (PII, payment info, credentials)?
+> - Are there any authentication or authorisation rules to enforce?
+>
+> Please answer as many as are relevant — if something doesn't apply, just say so."
 
-Wait for the user's response. If the user identifies impacted areas, incorporate them into the acceptance criteria in Step 4.
+Wait for the user's response. Incorporate all answers into the acceptance criteria in Step 4:
+- Impacted areas → `AC-I` criteria
+- Performance expectations → `AC-P` criteria
+- Security/access rules → `AC-S` criteria
 
 ---
 
@@ -128,6 +141,18 @@ Using all gathered information, draft the acceptance criteria in the following f
   **When** [the primary feature changes state]
   **Then** [impacted area behaves as expected]
 - [ ] AC-I2: ...
+
+#### ⚡ Performance Criteria (if applicable)
+- [ ] AC-P1:
+  **Given** [load condition or usage context]
+  **When** [user or system performs the action]
+  **Then** [measurable performance outcome, e.g., response within 2 seconds under 500 concurrent users]
+
+#### 🛡️ Security & Access Control Criteria (if applicable)
+- [ ] AC-S1:
+  **Given** [user role or auth state]
+  **When** [user attempts an action]
+  **Then** [expected access outcome — granted or denied with appropriate message]
 
 #### 🔢 Calculation Examples (if applicable)
 | Input | Calculation | Expected Output |
@@ -305,3 +330,16 @@ Use these samples as a style guide when drafting acceptance criteria.
   **Given** a low-stock alert was already sent for a product today
   **When** another sale further reduces the stock of the same product
   **Then** the system does not send a duplicate alert within the same 24-hour period
+
+---
+
+## Handoff Format — Passing AC to the BDD Test Case Skill
+
+When the acceptance criteria are finalised and saved, the output Markdown file is ready to be passed directly to the `bdd-test-case-architect` skill. To ensure a clean handoff:
+
+1. **Use the saved `.md` file as-is** — the BDD skill is designed to consume this exact format.
+2. **Paste the full AC block** (from `## Ticket:` down to the last AC line) into the BDD skill prompt.
+3. The BDD skill will use the AC IDs (`AC-1`, `AC-N1`, `AC-P1`, `AC-S1`, etc.) for traceability — do not rename or renumber them after finalisation.
+4. If you added Performance (`AC-P`) or Security (`AC-S`) criteria, the BDD skill will automatically generate corresponding Performance and Security test scenarios for them.
+
+> **Tip:** Tell the BDD skill your system context (tech stack, architecture) when you hand off — this helps it make better pyramid distribution decisions.

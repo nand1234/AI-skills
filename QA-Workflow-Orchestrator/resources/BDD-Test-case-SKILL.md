@@ -41,11 +41,16 @@ Step 6 → Save only if user explicitly confirms (include test level and reasoni
 
 ---
 
-### Step 1 — Receive Acceptance Criteria
+### Step 1 — Receive Acceptance Criteria & System Context
 
-Ask the user to provide their acceptance criteria. Prompt with:
+Ask the user to provide their acceptance criteria and system context together. Prompt with:
 
-> "Please provide the acceptance criteria you'd like me to generate test scenarios for. Include any context about the feature, business rules, and the system under test."
+> "Please provide the acceptance criteria you'd like me to generate test scenarios for. To help me make the best pyramid distribution decisions, also share:
+> - **Tech stack** — e.g., React frontend, Node.js API, PostgreSQL
+> - **Architecture** — e.g., monolith, microservices, serverless
+> - **Test tooling** (optional) — e.g., Jest, Cypress, Playwright, Cucumber, Postman
+>
+> If you're passing output from the `draft-ticket-acceptance-criteria` skill, you can paste the finalised AC block directly — the AC IDs will be used for full traceability."
 
 Accept whatever the user provides and move to Step 2.
 
@@ -179,14 +184,22 @@ Use this structure when presenting test scenarios:
 
 **TC-U1** (covers AC-1) | Technique: BVA
 **Reasoning:** [Why this is a unit test + which technique]
-- **Given** [precondition]
-  **When** [action]
-  **Then** [expected result]
+```gherkin
+@unit @ac-1
+Scenario: [short description]
+  Given [precondition]
+  When [action]
+  Then [expected result]
+```
 
 **TC-U2** (covers AC-1) | Technique: EP
-- **Given** [precondition]
-  **When** [action with invalid partition value]
-  **Then** [expected result]
+```gherkin
+@unit @ac-1
+Scenario: [short description — invalid partition]
+  Given [precondition]
+  When [action with invalid partition value]
+  Then [expected result]
+```
 
 ---
 
@@ -194,9 +207,13 @@ Use this structure when presenting test scenarios:
 
 **TC-A1** (covers AC-2)
 **Reasoning:** [Why this is an integration test]
-- **Given** [precondition]
-  **When** [API call or service interaction]
-  **Then** [expected result including status code / response]
+```gherkin
+@api @ac-2
+Scenario: [short description]
+  Given [precondition]
+  When [API call or service interaction]
+  Then [expected result including status code / response]
+```
 
 ---
 
@@ -204,9 +221,13 @@ Use this structure when presenting test scenarios:
 
 **TC-E1** (covers AC-1, AC-3)
 **Reasoning:** [Why this needs E2E coverage]
-- **Given** [user state]
-  **When** [user journey steps]
-  **Then** [observable user outcome]
+```gherkin
+@e2e @ac-1 @ac-3
+Scenario: [short description]
+  Given [user state]
+  When [user journey steps]
+  Then [observable user outcome]
+```
 
 ---
 
@@ -214,9 +235,13 @@ Use this structure when presenting test scenarios:
 
 **TC-S1** (covers AC-N2)
 **Reasoning:** [Security risk addressed]
-- **Given** [precondition]
-  **When** [security-relevant action]
-  **Then** [expected secure behavior]
+```gherkin
+@security @ac-n2
+Scenario: [short description]
+  Given [precondition]
+  When [security-relevant action]
+  Then [expected secure behavior]
+```
 
 ---
 
@@ -224,9 +249,13 @@ Use this structure when presenting test scenarios:
 
 **TC-P1** (covers AC-4)
 **Reasoning:** [Performance concern]
-- **Given** [load condition]
-  **When** [action under load]
-  **Then** [expected performance metric]
+```gherkin
+@performance @ac-4
+Scenario: [short description]
+  Given [load condition]
+  When [action under load]
+  Then [expected performance metric]
+```
 ```
 
 ---
@@ -244,54 +273,86 @@ Use this structure when presenting test scenarios:
 
 **TC-U1** (covers AC-1) | Technique: EP — Valid partition
 **Reasoning:** Validates credential-matching logic in isolation.
-- **Given** a registered user with email "user@test.com" and password "Correct123"
-  **When** the authentication function receives email "user@test.com" and password "Correct123"
-  **Then** it returns an authenticated session token
+```gherkin
+@unit @ac-1
+Scenario: Successful authentication with valid credentials
+  Given a registered user with email "user@test.com" and password "Correct123"
+  When the authentication function receives email "user@test.com" and password "Correct123"
+  Then it returns an authenticated session token
+```
 
 **TC-U2** (covers AC-N1) | Technique: EP — Invalid partition
 **Reasoning:** Verifies the function rejects wrong passwords without hitting external services.
-- **Given** a registered user with email "user@test.com" and password "Correct123"
-  **When** the authentication function receives email "user@test.com" and password "Wrong456"
-  **Then** it returns an authentication failure with a generic error message
+```gherkin
+@unit @ac-n1
+Scenario: Authentication fails with incorrect password
+  Given a registered user with email "user@test.com" and password "Correct123"
+  When the authentication function receives email "user@test.com" and password "Wrong456"
+  Then it returns an authentication failure with a generic error message
+```
 
 **TC-U3** (covers AC-N2) | Technique: BVA — At boundary
 **Reasoning:** Tests the exact lockout threshold boundary.
-- **Given** a user has failed login 4 times
-  **When** the user fails a 5th login attempt
-  **Then** the account is locked for 15 minutes
+```gherkin
+@unit @ac-n2
+Scenario: Account locks on 5th failed attempt
+  Given a user has failed login 4 times
+  When the user fails a 5th login attempt
+  Then the account is locked for 15 minutes
+```
 
 **TC-U4** (covers AC-N2) | Technique: BVA — Below boundary
 **Reasoning:** Ensures account is NOT locked below the threshold.
-- **Given** a user has failed login 4 times
-  **When** the system checks the account status
-  **Then** the account remains unlocked
+```gherkin
+@unit @ac-n2
+Scenario: Account remains unlocked after 4 failed attempts
+  Given a user has failed login 4 times
+  When the system checks the account status
+  Then the account remains unlocked
+```
 
 ### 🔌 API / Integration Level
 
 **TC-A1** (covers AC-1)
 **Reasoning:** Validates the POST /auth/login endpoint contract and session creation in the database.
-- **Given** a registered user exists in the system
-  **When** a POST request is sent to /auth/login with valid credentials
-  **Then** the API returns 200 with a session token and the session is persisted in the database
+```gherkin
+@api @ac-1
+Scenario: Login endpoint returns session token and persists session
+  Given a registered user exists in the system
+  When a POST request is sent to /auth/login with valid credentials
+  Then the API returns 200 with a session token and the session is persisted in the database
+```
 
 **TC-A2** (covers AC-N2)
 **Reasoning:** Validates the API enforces the lockout and returns the correct status code.
-- **Given** a user has failed login 5 times via the API
-  **When** a POST request is sent to /auth/login with any credentials for that user
-  **Then** the API returns 429 with the message "Account temporarily locked. Try again later."
+```gherkin
+@api @ac-n2
+Scenario: Locked account returns 429 on login attempt
+  Given a user has failed login 5 times via the API
+  When a POST request is sent to /auth/login with any credentials for that user
+  Then the API returns 429 with the message "Account temporarily locked. Try again later."
+```
 
 ### 🖥️ UI / E2E Level
 
 **TC-E1** (covers AC-1)
 **Reasoning:** Validates the complete login-to-dashboard journey as the end-user experiences it.
-- **Given** the user is on the login page
-  **When** the user enters valid credentials and clicks "Log In"
-  **Then** the user is redirected to the account dashboard and sees their profile name
+```gherkin
+@e2e @ac-1
+Scenario: User completes login and lands on dashboard
+  Given the user is on the login page
+  When the user enters valid credentials and clicks "Log In"
+  Then the user is redirected to the account dashboard and sees their profile name
+```
 
 ### 🛡️ Security
 
 **TC-S1** (covers AC-N1)
 **Reasoning:** Ensures error messages do not reveal whether the email or password was incorrect (prevents user enumeration).
-- **Given** an attacker submits a valid email with an incorrect password
-  **When** the login attempt fails
-  **Then** the system returns a generic "Invalid email or password" message without indicating which field was wrong
+```gherkin
+@security @ac-n1
+Scenario: Login error does not reveal which field was invalid
+  Given an attacker submits a valid email with an incorrect password
+  When the login attempt fails
+  Then the system returns a generic "Invalid email or password" message without indicating which field was wrong
+```
